@@ -1,0 +1,233 @@
+:root {
+    --bg-color: #0b0c10;
+    --panel-bg: rgba(31, 40, 51, 0.7);
+    --text-primary: #c5c6c7;
+    --text-highlight: #66fcf1;
+    --accent: #45a29e;
+    --font-main: 'Inter', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    overflow: hidden; /* Hide scrollbars */
+}
+
+/* Map Container */
+#map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+}
+
+/* Make Leaflet dark mode friendly using CSS filters */
+.leaflet-layer,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+/* Glassmorphism UI Container */
+#ui-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 1000; /* Above the map */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    pointer-events: none; /* Let clicks pass through to map where there are no panels */
+}
+
+header, #active-flights-panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(102, 252, 241, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    pointer-events: auto; /* Re-enable clicks for panels */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+header:hover, #active-flights-panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(102, 252, 241, 0.4);
+}
+
+header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+    color: white;
+}
+
+header .highlight {
+    color: var(--text-highlight);
+    text-shadow: 0 0 10px rgba(102, 252, 241, 0.6);
+}
+
+header p {
+    font-size: 0.9rem;
+    color: var(--accent);
+    font-weight: 300;
+}
+
+/* Active Flights Panel */
+#active-flights-panel {
+    min-width: 300px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Custom scrollbar for panel */
+#active-flights-panel::-webkit-scrollbar {
+    width: 6px;
+}
+#active-flights-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+#active-flights-panel::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 3px;
+}
+
+#active-flights-panel h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+}
+
+#flight-count {
+    color: var(--text-highlight);
+}
+
+#flights-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.flight-card {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 3px solid var(--text-highlight);
+    animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.flight-card h3 {
+    font-size: 1rem;
+    color: white;
+    margin-bottom: 4px;
+}
+
+.flight-card .route {
+    font-size: 0.8rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.flight-card .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    font-size: 0.75rem;
+}
+
+.stat-value {
+    color: white;
+    font-weight: 600;
+}
+
+.empty-state {
+    text-align: center;
+    font-style: italic;
+    color: #888;
+    padding: 20px 0;
+}
+
+/* Plane Icon CSS (Leaflet DivIcon) */
+.plane-icon-container {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s linear; /* Smooth rotation */
+}
+
+.plane-icon {
+    width: 24px;
+    height: 24px;
+    fill: var(--text-highlight);
+    filter: drop-shadow(0 0 5px var(--text-highlight));
+}
+
+/* ATC Icon CSS */
+.atc-icon-container {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.atc-icon {
+    width: 32px;
+    height: 32px;
+    fill: #e0a800; /* Distinct color for ATC, e.g. gold/yellow */
+    filter: drop-shadow(0 0 5px rgba(224, 168, 0, 0.8));
+}
+
+.atc-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #dc3545;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+.atc-label {
+    position: absolute;
+    bottom: -15px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #e0a800;
+    text-shadow: 1px 1px 2px black;
+    white-space: nowrap;
+}

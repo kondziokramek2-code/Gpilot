@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPilot | Live Tracker</title>
+    <meta name="description" content="Live Microsoft Flight Simulator 2020 flight tracker.">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="ui-container">
+        <header>
+            <h1><span class="highlight">G</span>Pilot Tracker</h1>
+            <p>Live MSFS 2020 Telemetry</p>
+        </header>
+        <div id="active-flights-panel">
+            <h2>Active Flights (<span id="flight-count">0</span>)</h2>
+            <ul id="flights-list">
+                <li class="empty-state">Oczekiwanie na pilotów...</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Custom App JS -->
+    <script src="app.js"></script>
+</body>
+</html>
