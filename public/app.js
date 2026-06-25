@@ -36,6 +36,8 @@ const atcMarkers = new Map();
 // Polylines for the currently selected flight
 let activeFlightLine = null;
 let activeDestinationLine = null;
+let activePlannedRouteLine = null;
+let activeWaypointMarkers = [];
 let selectedFlightId = null;
 
 // Connect to Socket.IO Server
@@ -71,13 +73,17 @@ function updateUI(flights) {
         const li = document.createElement('li');
         li.className = 'flight-card';
         
-        // Add a click listener to pan to the plane
+        // Add a click listener to pan to the plane and show panel
         li.style.cursor = 'pointer';
         li.onclick = () => {
+            const id = `${flight.airline}-${flight.flight_number}`;
             map.flyTo([flight.lat, flight.lon], 10, {
                 animate: true,
                 duration: 1.5
             });
+            selectedFlightId = id;
+            drawFlightLines(flight);
+            showRightPanel(flight);
         };
 
         li.innerHTML = `
@@ -93,6 +99,19 @@ function updateUI(flights) {
     });
 }
 
+function getAircraftScale(type) {
+    if (!type) return 1.0;
+    type = type.toUpperCase();
+    // Very Large
+    if (['A388', 'A380', 'B748', 'B744', 'A124', 'A225'].includes(type)) return 1.8;
+    // Large
+    if (['B789', 'B788', 'B78X', 'B77W', 'B77L', 'B772', 'B773', 'A333', 'A332', 'A339', 'A359', 'A35K', 'B763'].includes(type)) return 1.4;
+    // Small
+    if (['C172', 'C152', 'PA28', 'SR22', 'TBM9', 'PC12', 'C208', 'DA40', 'DA62'].includes(type)) return 0.7;
+    // Medium (Default)
+    return 1.0;
+}
+
 function updateMap(flights, atcs) {
     const currentFlightIds = new Set();
 
@@ -106,11 +125,11 @@ function updateMap(flights, atcs) {
             const marker = planeMarkers.get(id);
             marker.setLatLng([flight.lat, flight.lon]);
             
-            // Update rotation
+            // Update rotation and size
             const iconEl = marker.getElement();
             if (iconEl) {
-                // Leaflet DivIcon inner html wrapper
-                iconEl.innerHTML = `<div class="plane-icon-container" style="transform: rotate(${flight.heading}deg)">${planeSvg}</div>`;
+                const scale = getAircraftScale(flight.aircraft_type);
+                iconEl.innerHTML = `<div class="plane-icon-container" style="transform: rotate(${flight.heading}deg) scale(${scale})">${planeSvg}</div>`;
             }
             
             // Update popups dynamically
@@ -119,12 +138,14 @@ function updateMap(flights, atcs) {
             // Update lines if this is the selected flight
             if (selectedFlightId === id) {
                 drawFlightLines(flight);
+                updateRightPanel(flight);
             }
         } else {
             // Create new marker
-            // Custom DivIcon for rotation
+            // Custom DivIcon for rotation and scale
+            const scale = getAircraftScale(flight.aircraft_type);
             const customIcon = L.divIcon({
-                html: `<div class="plane-icon-container" style="transform: rotate(${flight.heading}deg)">${planeSvg}</div>`,
+                html: `<div class="plane-icon-container" style="transform: rotate(${flight.heading}deg) scale(${scale})">${planeSvg}</div>`,
                 className: '', // remove default leaflet background
                 iconSize: [32, 32],
                 iconAnchor: [16, 16] // Center of the 32x32 container
@@ -136,6 +157,7 @@ function updateMap(flights, atcs) {
             marker.on('click', () => {
                 selectedFlightId = id;
                 drawFlightLines(flight);
+                showRightPanel(flight);
             });
 
             planeMarkers.set(id, marker);
@@ -149,6 +171,7 @@ function updateMap(flights, atcs) {
             m.on('click', () => {
                 selectedFlightId = id;
                 drawFlightLines(flight);
+                showRightPanel(flight);
             });
         }
     });
@@ -159,8 +182,7 @@ function updateMap(flights, atcs) {
             map.removeLayer(marker);
             planeMarkers.delete(id);
             if (selectedFlightId === id) {
-                clearFlightLines();
-                selectedFlightId = null;
+                hideRightPanel();
             }
         }
     }
@@ -218,6 +240,15 @@ function updateMap(flights, atcs) {
     }
 }
 
+function clearPlannedRoute() {
+    if (activePlannedRouteLine) {
+        map.removeLayer(activePlannedRouteLine);
+        activePlannedRouteLine = null;
+    }
+    activeWaypointMarkers.forEach(marker => map.removeLayer(marker));
+    activeWaypointMarkers = [];
+}
+
 function clearFlightLines() {
     if (activeFlightLine) {
         map.removeLayer(activeFlightLine);
@@ -227,22 +258,133 @@ function clearFlightLines() {
         map.removeLayer(activeDestinationLine);
         activeDestinationLine = null;
     }
+    clearPlannedRoute();
 }
 
 function drawFlightLines(flight) {
     clearFlightLines();
     
-    // Draw past path
+    // Draw past path with smooth altitude gradient
     if (flight.path && flight.path.length > 0) {
-        activeFlightLine = L.polyline(flight.path, {color: '#66fcf1', weight: 3}).addTo(map);
+        const hotlineCoords = flight.path.map(p => {
+            const alt = p[2] !== undefined ? p[2] : (flight.alt || 0);
+            return [p[0], p[1], alt];
+        });
+
+        activeFlightLine = L.hotline(hotlineCoords, {
+            min: 0,
+            max: 40000,
+            palette: {
+                0.0: '#ffffff',   // White (0 ft)
+                0.125: '#ffffff', // White (up to 5,000 ft)
+                0.126: '#00c6ff', // Transition to Sky Blue (above 5,000 ft)
+                0.25: '#00ff87',  // Neon Green (10,000 ft)
+                0.50: '#f9d423',  // Neon Yellow (20,000 ft)
+                0.75: '#ff4e50',  // Coral Red (30,000 ft)
+                1.0: '#ff007f'    // Magenta / Pink (40,000+ ft)
+            },
+            weight: 3, // Thinner line as requested
+            outlineColor: '#0b0c10',
+            outlineWidth: 1
+        }).addTo(map);
     }
     
-    // Draw dashed line to destination
-    if (flight.arr_lat !== 0 && flight.arr_lon !== 0) {
-        activeDestinationLine = L.polyline(
-            [[flight.lat, flight.lon], [flight.arr_lat, flight.arr_lon]], 
-            {color: '#45a29e', weight: 2, dashArray: '10, 10'}
-        ).addTo(map);
+    // Draw planned route (transparent light blue) and waypoint markers
+    if (flight.planned_route && flight.planned_route.length > 0) {
+        const plannedCoords = flight.planned_route.map(w => [w.lat, w.lon]);
+        activePlannedRouteLine = L.polyline(plannedCoords, {
+            color: '#00d2ff',
+            weight: 2.5,
+            opacity: 0.45
+        }).addTo(map);
+
+        flight.planned_route.forEach(w => {
+            const customIcon = L.divIcon({
+                html: `
+                    <div class="waypoint-container">
+                        <div class="waypoint-square"></div>
+                        <div class="waypoint-label">${w.ident}</div>
+                    </div>
+                `,
+                className: '',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            const marker = L.marker([w.lat, w.lon], { icon: customIcon }).addTo(map);
+            activeWaypointMarkers.push(marker);
+        });
+    } else {
+        // Fallback: Draw dashed line to destination if no planned route
+        if (flight.arr_lat !== 0 && flight.arr_lon !== 0) {
+            activeDestinationLine = L.polyline(
+                [[flight.lat, flight.lon], [flight.arr_lat, flight.arr_lon]], 
+                {color: '#45a29e', weight: 2, dashArray: '10, 10'}
+            ).addTo(map);
+        }
     }
+}
+
+function showRightPanel(flight) {
+    const panel = document.getElementById('right-panel');
+    panel.classList.remove('hidden');
+    updateRightPanel(flight);
+}
+
+function hideRightPanel() {
+    const panel = document.getElementById('right-panel');
+    panel.classList.add('hidden');
+    selectedFlightId = null;
+    clearFlightLines();
+}
+
+function updateRightPanel(flight) {
+    const contentEl = document.getElementById('panel-content');
+    if (!contentEl) return;
+    
+    const squawk = flight.transponder || '1200';
+    
+    let routeHtml = '<p class="no-route">Brak zaplanowanej trasy SimBrief</p>';
+    if (flight.planned_route && flight.planned_route.length > 0) {
+        routeHtml = `
+            <div class="route-list">
+                ${flight.planned_route.map((w, index) => `
+                    <div class="route-waypoint">
+                        <span class="waypoint-idx">${index + 1}</span>
+                        <span class="waypoint-ident">${w.ident}</span>
+                        <span class="waypoint-coords">${w.lat.toFixed(4)}, ${w.lon.toFixed(4)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    contentEl.innerHTML = `
+        <h2 class="panel-title">${flight.airline} ${flight.flight_number}</h2>
+        <div class="panel-route">${flight.departure} ➔ ${flight.destination}</div>
+        
+        <div class="panel-section-title">Parametry lotu</div>
+        <div class="panel-stats-grid">
+            <div class="panel-stat-item">
+                <span class="stat-label">Wysokość</span>
+                <span class="stat-val">${Math.round(flight.alt)} ft</span>
+            </div>
+            <div class="panel-stat-item">
+                <span class="stat-label">Kierunek</span>
+                <span class="stat-val">${Math.round(flight.heading)}°</span>
+            </div>
+            <div class="panel-stat-item">
+                <span class="stat-label">COM1</span>
+                <span class="stat-val highlight-freq">${flight.com1_freq ? flight.com1_freq.toFixed(3) : '122.800'} MHz</span>
+            </div>
+            <div class="panel-stat-item">
+                <span class="stat-label">Transponder</span>
+                <span class="stat-val highlight-squawk">${squawk}</span>
+            </div>
+        </div>
+
+        <div class="panel-section-title">Trasa SimBrief</div>
+        ${routeHtml}
+    `;
 }
 

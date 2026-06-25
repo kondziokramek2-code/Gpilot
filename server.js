@@ -63,10 +63,13 @@ io.on('connection', (socket) => {
       const lastPos = data.path[data.path.length - 1];
 
       if (lastPos[0] !== data.lat || lastPos[1] !== data.lon) {
-        data.path.push([data.lat, data.lon]);
+        data.path.push([data.lat, data.lon, data.alt || 0]);
+      }
+      if (existing.planned_route && !data.planned_route) {
+        data.planned_route = existing.planned_route;
       }
     } else {
-      data.path = [[data.lat, data.lon]];
+      data.path = [[data.lat, data.lon, data.alt || 0]];
     }
 
     activeFlights.set(socket.id, data);

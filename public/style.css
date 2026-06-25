@@ -231,3 +231,213 @@ header p {
     text-shadow: 1px 1px 2px black;
     white-space: nowrap;
 }
+
+/* Right Panel */
+#right-panel {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    bottom: 20px;
+    width: 340px;
+    z-index: 1000;
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(102, 252, 241, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    overflow-y: auto;
+    pointer-events: auto;
+}
+
+#right-panel.hidden {
+    transform: translateX(380px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Custom scrollbar for right panel */
+#right-panel::-webkit-scrollbar {
+    width: 6px;
+}
+#right-panel::-webkit-scrollbar-track {
+    background: transparent;
+}
+#right-panel::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 3px;
+}
+
+#close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+#close-btn:hover {
+    color: var(--text-highlight);
+}
+
+.panel-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: white;
+    margin-top: 10px;
+}
+
+.panel-route {
+    font-size: 1rem;
+    color: var(--text-highlight);
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.panel-section-title {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(102, 252, 241, 0.1);
+    padding-bottom: 5px;
+    margin-top: 10px;
+}
+
+.panel-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.panel-stat-item {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid var(--accent);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 2px;
+}
+
+.stat-val {
+    font-size: 1rem;
+    font-weight: bold;
+    color: white;
+}
+
+.highlight-freq {
+    color: var(--text-highlight);
+}
+
+.highlight-squawk {
+    color: #f9d423;
+}
+
+/* Waypoint List */
+.route-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.route-list::-webkit-scrollbar {
+    width: 4px;
+}
+.route-list::-webkit-scrollbar-thumb {
+    background: rgba(102, 252, 241, 0.3);
+    border-radius: 2px;
+}
+
+.route-waypoint {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.waypoint-idx {
+    background: rgba(102, 252, 241, 0.15);
+    color: var(--text-highlight);
+    font-weight: 800;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+}
+
+.waypoint-ident {
+    font-weight: bold;
+    color: white;
+    flex: 1;
+    margin-left: 10px;
+}
+
+.waypoint-coords {
+    color: #888;
+    font-size: 0.7rem;
+}
+
+.no-route {
+    font-style: italic;
+    color: #666;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 15px 0;
+}
+
+/* Map Waypoint Markers */
+.waypoint-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.waypoint-square {
+    width: 8px;
+    height: 8px;
+    background-color: transparent;
+    border: 2px solid #00d2ff;
+    transform: rotate(45deg);
+    box-shadow: 0 0 4px #00d2ff;
+}
+
+.waypoint-label {
+    position: absolute;
+    top: 12px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #c5c6c7;
+    text-shadow: 1px 1px 2px #0b0c10, -1px -1px 2px #0b0c10, 1px -1px 2px #0b0c10, -1px 1px 2px #0b0c10;
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: 0.5px;
+}
