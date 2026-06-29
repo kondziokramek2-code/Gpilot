@@ -45,6 +45,32 @@ const socket = io();
 
 const flightsListEl = document.getElementById('flights-list');
 const flightCountEl = document.getElementById('flight-count');
+const searchInput = document.getElementById('search-input');
+const clearSearchBtn = document.getElementById('clear-search-btn');
+
+let activeFlightsData = [];
+let searchQuery = '';
+
+if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        if (searchQuery.trim().length > 0) {
+            clearSearchBtn.classList.remove('hidden');
+        } else {
+            clearSearchBtn.classList.add('hidden');
+        }
+        updateUI();
+    });
+}
+
+if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        clearSearchBtn.classList.add('hidden');
+        updateUI();
+    });
+}
 
 socket.on('connect', () => {
     console.log('Connected to server');
@@ -56,20 +82,40 @@ socket.on('map_update', (data) => {
     let flights = Array.isArray(data) ? data : data.flights; // fallback for older clients
     let atcs = data.atcs || [];
 
-    updateUI(flights);
+    activeFlightsData = flights;
+    updateUI();
     updateMap(flights, atcs);
 });
 
-function updateUI(flights) {
-    flightCountEl.innerText = flights.length;
+function updateUI() {
+    flightCountEl.innerText = activeFlightsData.length;
     
-    if (flights.length === 0) {
-        flightsListEl.innerHTML = '<li class="empty-state">Oczekiwanie na pilotów...</li>';
+    const query = searchQuery.trim().toLowerCase();
+    
+    if (!query) {
+        flightsListEl.classList.add('hidden');
+        flightsListEl.innerHTML = '';
         return;
     }
 
+    // Filter flights by airline or flight_number
+    const filtered = activeFlightsData.filter(flight => {
+        const airline = (flight.airline || '').toLowerCase();
+        const flightNum = (flight.flight_number || '').toLowerCase();
+        const combined = `${airline}${flightNum}`;
+        const combinedSpace = `${airline} ${flightNum}`;
+        return airline.includes(query) || flightNum.includes(query) || combined.includes(query) || combinedSpace.includes(query);
+    });
+
+    flightsListEl.classList.remove('hidden');
     flightsListEl.innerHTML = ''; // Clear list
-    flights.forEach(flight => {
+    
+    if (filtered.length === 0) {
+        flightsListEl.innerHTML = '<li class="empty-state">Brak pasujących lotów</li>';
+        return;
+    }
+
+    filtered.forEach(flight => {
         const li = document.createElement('li');
         li.className = 'flight-card';
         
@@ -273,17 +319,36 @@ function drawFlightLines(flight) {
 
         activeFlightLine = L.hotline(hotlineCoords, {
             min: 0,
-            max: 40000,
+            max: 45000,
             palette: {
-                0.0: '#ffffff',   // White (0 ft)
-                0.125: '#ffffff', // White (up to 5,000 ft)
-                0.126: '#00c6ff', // Transition to Sky Blue (above 5,000 ft)
-                0.25: '#00ff87',  // Neon Green (10,000 ft)
-                0.50: '#f9d423',  // Neon Yellow (20,000 ft)
-                0.75: '#ff4e50',  // Coral Red (30,000 ft)
-                1.0: '#ff007f'    // Magenta / Pink (40,000+ ft)
+                0.000: '#ffffff',   //     0 ft — biały (na ziemi)
+                0.044: '#ffffff',   // 2,000 ft — biały
+                0.089: '#e0f7fa',   // 4,000 ft — lodowy błękit
+                0.111: '#b2ebf2',   // 5,000 ft — jasny cyjan
+                0.133: '#80deea',   // 6,000 ft — cyjan
+                0.156: '#4dd0e1',   // 7,000 ft — morski
+                0.178: '#26c6da',   // 8,000 ft — turkus
+                0.200: '#00bcd4',   // 9,000 ft — głęboki turkus
+                0.222: '#00acc1',   // 10,000 ft — ciemny turkus
+                0.267: '#00e676',   // 12,000 ft — neon zielony
+                0.311: '#76ff03',   // 14,000 ft — limonka
+                0.356: '#c6ff00',   // 16,000 ft — żółto-zielony
+                0.400: '#ffea00',   // 18,000 ft — żółty
+                0.444: '#ffc400',   // 20,000 ft — złoty
+                0.489: '#ffab00',   // 22,000 ft — bursztyn
+                0.533: '#ff9100',   // 24,000 ft — pomarańczowy
+                0.578: '#ff6d00',   // 26,000 ft — ciemny pomarańcz
+                0.622: '#ff3d00',   // 28,000 ft — ognisty czerwony
+                0.667: '#ff1744',   // 30,000 ft — czerwony
+                0.711: '#f50057',   // 32,000 ft — malinowy
+                0.756: '#d500f9',   // 34,000 ft — fiolet
+                0.800: '#aa00ff',   // 36,000 ft — głęboki fiolet
+                0.844: '#7c4dff',   // 38,000 ft — indygo
+                0.889: '#651fff',   // 40,000 ft — ciemne indygo
+                0.933: '#6200ea',   // 42,000 ft — ultra fiolet
+                1.000: '#b388ff'    // 45,000 ft — jasny liliowy (FL450+)
             },
-            weight: 3, // Thinner line as requested
+            weight: 3,
             outlineColor: '#0b0c10',
             outlineWidth: 1
         }).addTo(map);

@@ -20,7 +20,11 @@
         </header>
         <div id="active-flights-panel">
             <h2>Active Flights (<span id="flight-count">0</span>)</h2>
-            <ul id="flights-list">
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Szukaj linii / lotu..." autocomplete="off">
+                <button id="clear-search-btn" class="hidden">&times;</button>
+            </div>
+            <ul id="flights-list" class="hidden">
                 <li class="empty-state">Oczekiwanie na pilotów...</li>
             </ul>
         </div>
